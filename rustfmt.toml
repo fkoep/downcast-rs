@@ -1,0 +1,12 @@
+max_width = 94
+fn_call_width = 89
+fn_single_line = true
+fn_args_layout = "Block"
+array_layout = "Block"
+where_layout = "HorizontalVertical"
+where_pred_indent = "Block"
+generics_indent = "Block"
+reorder_imported_names = true
+wrap_comments = true
+match_block_trailing_comma = true
+closure_block_indent_threshold = 0

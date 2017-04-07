@@ -1,0 +1,37 @@
+# downcast
+
+[![](http://meritbadge.herokuapp.com/downcast)](https://crates.io/crates/downcast)
+
+A trait (& utilities) for downcasting trait objects back to their original types.
+
+## [link to API documentation](https://docs.rs/downcast)
+
+## example usage
+
+Add to your Cargo.toml:
+
+```toml
+[dependencies]
+downcast = "0.7"
+```
+
+Add to your crate root:
+
+```rust
+#[macro_use]
+extern crate downcast;
+```
+
+* [simple](examples/simple.rs) showcases the most simple usage of this library.
+* [with_params](examples/with_params.rs)  showcases how to deal with traits who have type parameters. 
+* [downcasted](examples/downcasted.rs) showcases how to use the `Downcasted` wrapper types.
+
+## build features
+
+* **std (default)** enables all functionality requiring the standard library (`Downcast::downcast()`).
+* **nightly** enables all functionality requiring rust nightly (`Any::type_name()`, `Downcasted::try_from()`).
+
+## contribution guidelines
+
+Make sure to `cargo install rustfmt` and `cargo fmt` the codebase before creating any commits!
+
