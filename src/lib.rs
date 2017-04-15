@@ -15,9 +15,7 @@ use std::error::Error;
 #[cfg(feature = "nightly")]
 use std::intrinsics;
 use std::fmt::{self, Debug, Display};
-use std::marker::PhantomData;
 use std::mem;
-use std::ops::{Deref, DerefMut};
 
 // ++++++++++++++++++++ Any ++++++++++++++++++++
 
@@ -104,12 +102,28 @@ impl<O> Error for DowncastError<O> {
 
 // ++++++++++++++++++++ Downcast ++++++++++++++++++++
 
+#[derive(Clone, Copy)]
+struct TraitObject {
+    pub data: *mut (),
+    pub vtable: *mut (),
+}
+
+#[inline]
+fn to_trait_object<T: ?Sized>(obj: &T) -> TraitObject {
+    assert_eq!(mem::size_of::<&T>(), mem::size_of::<TraitObject>());
+    unsafe { *((&obj) as *const &T as *const TraitObject) }
+}
+
 pub trait Downcast<T>: Any
     where T: Any
 {
-    fn is_type(&self) -> bool;
+    fn is_type(&self) -> bool {
+        self.type_id() == TypeId::of::<T>()
+    }
 
-    unsafe fn downcast_ref_unchecked(&self) -> &T;
+    unsafe fn downcast_ref_unchecked(&self) -> &T {
+        &*(to_trait_object(self).data as *mut T)
+    }
 
     fn downcast_ref(&self) -> Result<&T, DowncastError<&Self>> {
         if self.is_type() {
@@ -120,7 +134,9 @@ pub trait Downcast<T>: Any
         }
     }
 
-    unsafe fn downcast_mut_unchecked(&mut self) -> &mut T;
+    unsafe fn downcast_mut_unchecked(&mut self) -> &mut T {
+        &mut*(to_trait_object(self).data as *mut T)
+    }
 
     fn downcast_mut(&mut self) -> Result<&mut T, DowncastError<&mut Self>> {
         if self.is_type() {
@@ -132,7 +148,11 @@ pub trait Downcast<T>: Any
     }
 
     #[cfg(feature = "std")]
-    unsafe fn downcast_unchecked(self: Box<Self>) -> Box<T>;
+    unsafe fn downcast_unchecked(self: Box<Self>) -> Box<T> {
+        let ret: Box<T> = Box::from_raw(to_trait_object(&*self).data as *mut T);
+        mem::forget(self);
+        ret
+    }
 
     #[cfg(feature = "std")]
     fn downcast(self: Box<Self>) -> Result<Box<T>, DowncastError<Box<Self>>> {
@@ -148,112 +168,51 @@ pub trait Downcast<T>: Any
 // ++++++++++++++++++++ macros ++++++++++++++++++++
 
 #[doc(hidden)]
-#[derive(Clone, Copy)]
-pub struct TraitObject {
-    pub data: *mut (),
-    pub vtable: *mut (),
-}
-
-#[doc(hidden)]
-#[inline]
-pub fn to_trait_object<T: ?Sized>(obj: &T) -> TraitObject {
-    assert_eq!(mem::size_of::<&T>(), mem::size_of::<TraitObject>());
-    unsafe { *((&obj) as *const &T as *const TraitObject) }
-}
-
-#[doc(hidden)]
 pub mod _std {
     pub use std::*;
 }
 
-/// Implements `Downcast<T: $base>` for your trait-object-type `$base`.
+/// Implements [`Downcast`](trait.Downcast.html) for your trait-object-type.
 ///
-/// TODO Get rid of @core, automatically detect whether std is enabled
+/// ```ignore
+/// impl_downcast!(Foo);
+/// impl_downcast!(<B> Foo<B> where B: Bar);
+/// impl_downcast!(<B> Foo<Bar = B>);
+/// ```
+///
+/// expands to
+///
+/// ```ignore
+/// impl<T> Downcast<T> for Foo 
+///     where T: Any
+/// {}
+///
+/// impl<T, B> Downcast<T> for Foo<B> 
+///     where T: Any, B: Bar
+/// {}
+///
+/// impl<T, B> Downcast<T> for Foo<Bar = B> 
+///     where T: Any
+/// {}
+/// ```
 #[macro_export]
 macro_rules! impl_downcast {
-    (@core @items $t:ty) => {
-        fn is_type(&self) -> bool {
-            use $crate::_std::any::TypeId;
-
-            $crate::Any::type_id(self) == TypeId::of::<$t>()
-        }
-        unsafe fn downcast_ref_unchecked(&self) -> &$t {
-            &*($crate::to_trait_object(self).data as *mut $t)
-        }
-        unsafe fn downcast_mut_unchecked(&mut self) -> &mut $t {
-            &mut*($crate::to_trait_object(self).data as *mut $t)
-        }
-    };
-    (@items $t:ty) => {
-        impl_downcast!(@core @items $t);
-
-        unsafe fn downcast_unchecked(self: Box<Self>) -> Box<$t> {
-            use $crate::_std::mem;
-
-            let ret: Box<$t> = Box::from_raw($crate::to_trait_object(&*self).data as *mut $t);
-            mem::forget(self);
-            ret
-        }
-    };
-    (@core <$($params:ident),+ $(,)*> $base:ty $(where $($bounds:tt)+)*) => {
-        impl<_T: $crate::Any, $($params),+> $crate::Downcast<_T> for $base
-            $(where $($bounds)+)*
-        {
-            impl_downcast!(@core @items _T);
-        }
-    };
     (<$($params:ident),+ $(,)*> $base:ty $(where $($bounds:tt)+)*) => {
         impl<_T: $crate::Any, $($params),+> $crate::Downcast<_T> for $base
-            $(where $($bounds)+)*
-        {
-            impl_downcast!(@items _T);
-        }
-    };
-    (@core $base:ty) => {
-        impl<_T: $crate::Any> $crate::Downcast<_T> for $base {
-            impl_downcast!(@core @items _T);
-        }
+            where _T: $crate::Any, $($($bounds)+)*
+        {}
     };
     ($base:ty) => {
-        impl<_T: $crate::Any> $crate::Downcast<_T> for $base {
-            impl_downcast!(@items _T);
-        }
+        impl<_T: $crate::Any> $crate::Downcast<_T> for $base 
+            where _T: $crate::Any
+        {}
     };
 }
 
-/// Implement `downcast`-methods on your trait-object-type (these don't require
-/// `Downcast` to
-/// be imported to be used).
-///
-/// Generated methods:
-///
-/// ```
-/// pub fn is<T>(&self) -> bool
-///     where T: Any, Self: Downcast<T>;
-///
-/// pub unsafe fn downcast_ref_unchecked<T>(&self) -> &T
-///     where T: Any, Self: Downcast<T>;
-///
-/// pub fn downcast_ref<T>(&self) -> Result<&T, DowncastError<&T>>
-///     where T: Any, Self: Downcast<T>;
-///
-/// pub unsafe fn downcast_mut_unchecked<T>(&mut self) -> &mut T
-///     where T: Any, Self: Downcast<T>;
-///
-/// pub fn downcast_mut<T>(&mut self) -> Result<&mut T, DowncastError<&mut T>>
-///     where T: Any, Self: Downcast<T>;
-///
-/// pub unsafe fn downcast_unchecked<T>(self: Box<Self>) -> Box<T>
-///     where T: Any, Self: Downcast<T>;
-///
-/// pub fn downcast<T>(self: Box<Self>) -> Result<Box<T>, DowncastError<Box<T>>>
-///     where T: Any, Self: Downcast<T>;
-/// ```
-///
-/// TODO Get rid of @core, automatically detect whether std is enabled
+#[doc(hidden)]
 #[macro_export]
-macro_rules! downcast_methods {
-    (@core @items) => {
+macro_rules! downcast_methods_core {
+    (@items) => {
         #[allow(unused)]
         pub fn is<_T>(&self) -> bool
             where _T: $crate::Any, Self: $crate::Downcast<_T>
@@ -289,8 +248,25 @@ macro_rules! downcast_methods {
             $crate::Downcast::<_T>::downcast_mut(self)
         }
     };
+    (<$($params:ident),+ $(,)*> $base:ty $(where $($bounds:tt)+)*) => {
+        impl<$($params),+> $base
+            $(where $($bounds)+)*
+        {
+            downcast_methods_core!(@items);
+        }
+    };
+    ($base:ty) => {
+        impl $base {
+            downcast_methods_core!(@items);
+        }
+    };
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! downcast_methods_std {
     (@items) => {
-        downcast_methods!(@core @items);
+        downcast_methods_core!(@items);
 
         #[allow(unused)]
         pub unsafe fn downcast_unchecked<_T>(self: Box<Self>) -> Box<_T>
@@ -306,33 +282,116 @@ macro_rules! downcast_methods {
             $crate::Downcast::<_T>::downcast(self)
         }
     };
-    (@core <$($params:ident),+ $(,)*> $base:ty $(where $($bounds:tt)+)*) => {
-        impl<$($params),+> $base
-            $(where $($bounds)+)*
-        {
-            downcast_methods!(@core @items);
-        }
-    };
     (<$($params:ident),+ $(,)*> $base:ty $(where $($bounds:tt)+)*) => {
         impl<$($params),+> $base
             $(where $($bounds)+)*
         {
-            downcast_methods!(@items);
-        }
-    };
-    (@core $base:ty) => {
-        impl $base {
-            downcast_methods!(@core @items);
+            downcast_methods_std!(@items);
         }
     };
     ($base:ty) => {
         impl $base {
-            downcast_methods!(@items);
+            downcast_methods_std!(@items);
         }
     };
 }
 
-/// `impl_downcast!(...)` + `downcast_methods!(...)`
+/// Generate `downcast`-methods for your trait-object-type.
+///
+/// ```ignore
+/// downcast_methods!(Foo);
+/// downcast_methods!(<B> Foo<B> where B: Bar);
+/// downcast_methods!(<B> Foo<Bar = B>);
+/// ```
+///
+/// ```ignore
+/// /* 1st */ impl Foo {
+/// /* 2nd */ impl<B> Foo<B> where B: Bar {
+/// /* 3nd */ impl<B> Foo<Bar = B> {
+///
+///     pub fn is<T>(&self) -> bool
+///         where T: Any, Self: Downcast<T>
+///     { ... }
+///    
+///     pub unsafe fn downcast_ref_unchecked<T>(&self) -> &T
+///         where T: Any, Self: Downcast<T>
+///     { ... }
+///    
+///     pub fn downcast_ref<T>(&self) -> Result<&T, DowncastError<&T>>
+///         where T: Any, Self: Downcast<T>
+///     { ... }
+///    
+///     pub unsafe fn downcast_mut_unchecked<T>(&mut self) -> &mut T
+///         where T: Any, Self: Downcast<T>
+///     { ... }
+///    
+///     pub fn downcast_mut<T>(&mut self) -> Result<&mut T, DowncastError<&mut T>>
+///         where T: Any, Self: Downcast<T>
+///     { ... }
+///    
+///     pub unsafe fn downcast_unchecked<T>(self: Box<Self>) -> Box<T>
+///         where T: Any, Self: Downcast<T>
+///     { ... }
+/// }
+/// ```
+#[cfg(not(feature = "std"))]
+#[macro_export]
+macro_rules! downcast_methods {
+    ($($tt:tt)+) => { downcast_methods_core!($($tt)+); }
+}
+
+/// Generate `downcast`-methods for your trait-object-type.
+///
+/// ```ignore
+/// downcast_methods!(Foo);
+/// downcast_methods!(<B> Foo<B> where B: Bar);
+/// downcast_methods!(<B> Foo<Bar = B>);
+/// ```
+///
+/// ```ignore
+/// /* 1st */ impl Foo {
+/// /* 2nd */ impl<B> Foo<B> where B: Bar {
+/// /* 3nd */ impl<B> Foo<Bar = B> {
+///
+///     pub fn is<T>(&self) -> bool
+///         where T: Any, Self: Downcast<T>
+///     { ... }
+///    
+///     pub unsafe fn downcast_ref_unchecked<T>(&self) -> &T
+///         where T: Any, Self: Downcast<T>
+///     { ... }
+///    
+///     pub fn downcast_ref<T>(&self) -> Result<&T, DowncastError<&T>>
+///         where T: Any, Self: Downcast<T>
+///     { ... }
+///    
+///     pub unsafe fn downcast_mut_unchecked<T>(&mut self) -> &mut T
+///         where T: Any, Self: Downcast<T>
+///     { ... }
+///    
+///     pub fn downcast_mut<T>(&mut self) -> Result<&mut T, DowncastError<&mut T>>
+///         where T: Any, Self: Downcast<T>
+///     { ... }
+///    
+///     pub unsafe fn downcast_unchecked<T>(self: Box<Self>) -> Box<T>
+///         where T: Any, Self: Downcast<T>
+///     { ... }
+///
+///     pub fn downcast<T>(self: Box<Self>) -> Result<Box<T>, DowncastError<Box<T>>>
+///         where T: Any, Self: Downcast<T>
+///     { ... }
+/// }
+/// ```
+#[cfg(feature = "std")]
+#[macro_export]
+macro_rules! downcast_methods {
+    ($($tt:tt)+) => { downcast_methods_std!($($tt)+); }
+}
+
+/// Implements [`Downcast`](trait.downcast.html) and generates `downcast`-methods for your trait-object-type.
+///
+/// See [`impl_downcast`](macro.impl_downcast.html),
+/// [`downcast_methods`](macro.downcast_methods.html).
 #[macro_export]
 macro_rules! downcast {
     ($($tt:tt)+) => {
@@ -343,7 +402,6 @@ macro_rules! downcast {
 
 // NOTE: We only implement the trait, because implementing the methods won't
 // be possible when we replace downcast::Any by std::any::Any.
-#[cfg(feature = "std")]
 mod any_impls {
     use super::Any;
 
@@ -351,13 +409,4 @@ mod any_impls {
     impl_downcast!((Any + Send));
     impl_downcast!((Any + Sync));
     impl_downcast!((Any + Send + Sync));
-}
-#[cfg(not(feature = "std"))]
-mod any_impls {
-    use super::Any;
-
-    impl_downcast!(@core Any);
-    impl_downcast!(@core (Any + Send));
-    impl_downcast!(@core (Any + Sync));
-    impl_downcast!(@core (Any + Send + Sync));
 }
