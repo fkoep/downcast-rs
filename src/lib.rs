@@ -117,13 +117,9 @@ fn to_trait_object<T: ?Sized>(obj: &T) -> TraitObject {
 pub trait Downcast<T>: Any
     where T: Any
 {
-    fn is_type(&self) -> bool {
-        self.type_id() == TypeId::of::<T>()
-    }
+    fn is_type(&self) -> bool { self.type_id() == TypeId::of::<T>() }
 
-    unsafe fn downcast_ref_unchecked(&self) -> &T {
-        &*(to_trait_object(self).data as *mut T)
-    }
+    unsafe fn downcast_ref_unchecked(&self) -> &T { &*(to_trait_object(self).data as *mut T) }
 
     fn downcast_ref(&self) -> Result<&T, DowncastError<&Self>> {
         if self.is_type() {
@@ -135,7 +131,7 @@ pub trait Downcast<T>: Any
     }
 
     unsafe fn downcast_mut_unchecked(&mut self) -> &mut T {
-        &mut*(to_trait_object(self).data as *mut T)
+        &mut *(to_trait_object(self).data as *mut T)
     }
 
     fn downcast_mut(&mut self) -> Result<&mut T, DowncastError<&mut Self>> {
@@ -183,15 +179,15 @@ pub mod _std {
 /// expands to
 ///
 /// ```ignore
-/// impl<T> Downcast<T> for Foo 
+/// impl<T> Downcast<T> for Foo
 ///     where T: Any
 /// {}
 ///
-/// impl<T, B> Downcast<T> for Foo<B> 
+/// impl<T, B> Downcast<T> for Foo<B>
 ///     where T: Any, B: Bar
 /// {}
 ///
-/// impl<T, B> Downcast<T> for Foo<Bar = B> 
+/// impl<T, B> Downcast<T> for Foo<Bar = B>
 ///     where T: Any
 /// {}
 /// ```
@@ -312,23 +308,24 @@ macro_rules! downcast_methods_std {
 ///     pub fn is<T>(&self) -> bool
 ///         where T: Any, Self: Downcast<T>
 ///     { ... }
-///    
+///
 ///     pub unsafe fn downcast_ref_unchecked<T>(&self) -> &T
 ///         where T: Any, Self: Downcast<T>
 ///     { ... }
-///    
+///
 ///     pub fn downcast_ref<T>(&self) -> Result<&T, DowncastError<&T>>
 ///         where T: Any, Self: Downcast<T>
 ///     { ... }
-///    
+///
 ///     pub unsafe fn downcast_mut_unchecked<T>(&mut self) -> &mut T
 ///         where T: Any, Self: Downcast<T>
 ///     { ... }
-///    
-///     pub fn downcast_mut<T>(&mut self) -> Result<&mut T, DowncastError<&mut T>>
+///
+/// pub fn downcast_mut<T>(&mut self) -> Result<&mut T, DowncastError<&mut
+/// T>>
 ///         where T: Any, Self: Downcast<T>
 ///     { ... }
-///    
+///
 ///     pub unsafe fn downcast_unchecked<T>(self: Box<Self>) -> Box<T>
 ///         where T: Any, Self: Downcast<T>
 ///     { ... }
@@ -356,28 +353,30 @@ macro_rules! downcast_methods {
 ///     pub fn is<T>(&self) -> bool
 ///         where T: Any, Self: Downcast<T>
 ///     { ... }
-///    
+///
 ///     pub unsafe fn downcast_ref_unchecked<T>(&self) -> &T
 ///         where T: Any, Self: Downcast<T>
 ///     { ... }
-///    
+///
 ///     pub fn downcast_ref<T>(&self) -> Result<&T, DowncastError<&T>>
 ///         where T: Any, Self: Downcast<T>
 ///     { ... }
-///    
+///
 ///     pub unsafe fn downcast_mut_unchecked<T>(&mut self) -> &mut T
 ///         where T: Any, Self: Downcast<T>
 ///     { ... }
-///    
-///     pub fn downcast_mut<T>(&mut self) -> Result<&mut T, DowncastError<&mut T>>
+///
+/// pub fn downcast_mut<T>(&mut self) -> Result<&mut T, DowncastError<&mut
+/// T>>
 ///         where T: Any, Self: Downcast<T>
 ///     { ... }
-///    
+///
 ///     pub unsafe fn downcast_unchecked<T>(self: Box<Self>) -> Box<T>
 ///         where T: Any, Self: Downcast<T>
 ///     { ... }
 ///
-///     pub fn downcast<T>(self: Box<Self>) -> Result<Box<T>, DowncastError<Box<T>>>
+/// pub fn downcast<T>(self: Box<Self>) -> Result<Box<T>,
+/// DowncastError<Box<T>>>
 ///         where T: Any, Self: Downcast<T>
 ///     { ... }
 /// }
@@ -388,7 +387,8 @@ macro_rules! downcast_methods {
     ($($tt:tt)+) => { downcast_methods_std!($($tt)+); }
 }
 
-/// Implements [`Downcast`](trait.downcast.html) and generates `downcast`-methods for your trait-object-type.
+/// Implements [`Downcast`](trait.downcast.html) and generates
+/// `downcast`-methods for your trait-object-type.
 ///
 /// See [`impl_downcast`](macro.impl_downcast.html),
 /// [`downcast_methods`](macro.downcast_methods.html).
