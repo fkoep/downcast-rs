@@ -24,7 +24,6 @@ extern crate downcast;
 
 * [simple](examples/simple.rs) showcases the most simple usage of this library.
 * [with_params](examples/with_params.rs)  showcases how to deal with traits who have type parameters. 
-* [downcasted](examples/downcasted.rs) showcases how to use the `Downcasted` wrapper types.
 
 ## build features
 
