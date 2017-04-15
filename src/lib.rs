@@ -2,7 +2,7 @@
 #![cfg_attr(feature = "nightly", feature(core_intrinsics, try_from))]
 
 #[cfg(not(feature = "std"))]
-pub mod std {
+mod std {
     pub use core::*;
 }
 
@@ -145,134 +145,6 @@ pub trait Downcast<T>: Any
     }
 }
 
-
-// ++++++++++++++++++++ Downcasted ++++++++++++++++++++
-
-pub struct Downcasted<T, O> {
-    inner: O,
-    _phantom: PhantomData<fn(T)>,
-}
-
-#[cfg(feature = "nightly")]
-impl<T, O> TryFrom<O> for Downcasted<T, O>
-    where T: Any, O: Deref, O::Target: Downcast<T>
-{
-    type Error = DowncastError<O>;
-    fn try_from(inner: O) -> Result<Self, Self::Error> {
-        if inner.is_type() {
-            Ok(Self {
-                   inner: inner,
-                   _phantom: PhantomData,
-               })
-        } else {
-            let mismatch = TypeMismatch::new::<T, O::Target>(&*inner);
-            Err(DowncastError::new(mismatch, inner))
-        }
-    }
-}
-
-impl<T, O> From<O> for Downcasted<T, O>
-    where T: Any, O: Deref, O::Target: Downcast<T>
-{
-    fn from(inner: O) -> Self {
-        /* FIXME(try_from) use try_from().unwrap() */
-
-        inner.downcast_ref().unwrap();
-        Self {
-            inner: inner,
-            _phantom: PhantomData,
-        }
-    }
-}
-
-impl<T, O> Clone for Downcasted<T, O>
-    where T: Any, O: Deref + Clone, O::Target: Downcast<T>
-{
-    fn clone(&self) -> Self { Self::from(self.inner.clone()) }
-}
-
-impl<T, O> Downcasted<T, O>
-    where T: Any, O: Deref, O::Target: Downcast<T>
-{
-    pub fn into_inner(self) -> O { self.inner }
-}
-
-impl<T, O> Deref for Downcasted<T, O>
-    where T: Any, O: Deref, O::Target: Downcast<T>
-{
-    type Target = T;
-    fn deref(&self) -> &Self::Target { unsafe { self.inner.downcast_ref_unchecked() } }
-}
-
-impl<T, O> DerefMut for Downcasted<T, O>
-    where T: Any, O: DerefMut, O::Target: Downcast<T>
-{
-    fn deref_mut(&mut self) -> &mut T { unsafe { self.inner.downcast_mut_unchecked() } }
-}
-
-// ++++++++++++++++++++ Downcasted2 ++++++++++++++++++++
-
-pub struct Downcasted2<T, O> {
-    inner: O,
-    _phantom: PhantomData<fn(T)>,
-}
-
-#[cfg(feature = "nightly")]
-impl<T, O> TryFrom<O> for Downcasted2<T, O>
-    where T: Any, O: Deref, O::Target: Deref, <O::Target as Deref>::Target: Downcast<T>
-{
-    type Error = DowncastError<O>;
-    fn try_from(inner: O) -> Result<Self, Self::Error> {
-        if inner.is_type() {
-            Ok(Self {
-                   inner: inner,
-                   _phantom: PhantomData,
-               })
-        } else {
-            let mismatch = TypeMismatch::new::<T, <O::Target as Deref>::Target>(&**inner);
-            Err(DowncastError::new(mismatch, inner))
-        }
-    }
-}
-
-impl<T, O> From<O> for Downcasted2<T, O>
-    where T: Any, O: Deref, O::Target: Deref, <O::Target as Deref>::Target: Downcast<T>
-{
-    fn from(inner: O) -> Self {
-        /* FIXME(try_from) use try_from().unwrap() */
-
-        inner.downcast_ref().unwrap();
-        Self {
-            inner: inner,
-            _phantom: PhantomData,
-        }
-    }
-}
-
-impl<T, O> Clone for Downcasted2<T, O>
-    where T: Any, O: Deref + Clone, O::Target: Deref, <O::Target as Deref>::Target: Downcast<T>
-{
-    fn clone(&self) -> Self { Self::from(self.inner.clone()) }
-}
-
-impl<T, O> Downcasted2<T, O>
-    where T: Any, O: Deref, O::Target: Deref, <O::Target as Deref>::Target: Downcast<T>
-{
-    pub fn into_inner(self) -> O { self.inner }
-}
-
-impl<T, O> Deref for Downcasted2<T, O>
-    where T: Any, O: Deref, O::Target: Deref, <O::Target as Deref>::Target: Downcast<T>
-{
-    type Target = T;
-    fn deref(&self) -> &Self::Target { unsafe { self.inner.downcast_ref_unchecked() } }
-}
-
-impl<T, O> DerefMut for Downcasted2<T, O>
-    where T: Any, O: DerefMut, O::Target: DerefMut, <O::Target as Deref>::Target: Downcast<T>
-{
-    fn deref_mut(&mut self) -> &mut T { unsafe { self.inner.downcast_mut_unchecked() } }
-}
 // ++++++++++++++++++++ macros ++++++++++++++++++++
 
 #[doc(hidden)]
