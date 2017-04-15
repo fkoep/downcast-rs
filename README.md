@@ -12,7 +12,7 @@ Add to your Cargo.toml:
 
 ```toml
 [dependencies]
-downcast = "0.7"
+downcast = "0.8"
 ```
 
 Add to your crate root:
@@ -28,7 +28,7 @@ extern crate downcast;
 ## build features
 
 * **std (default)** enables all functionality requiring the standard library (`Downcast::downcast()`).
-* **nightly** enables all functionality requiring rust nightly (`Any::type_name()`, `Downcasted::try_from()`).
+* **nightly** enables all functionality requiring rust nightly (`Any::type_name()`).
 
 ## contribution guidelines
 
