@@ -121,12 +121,11 @@ pub trait Downcast<T>: Any
 
     unsafe fn downcast_ref_unchecked(&self) -> &T { &*(to_trait_object(self).data as *mut T) }
 
-    fn downcast_ref(&self) -> Result<&T, DowncastError<&Self>> {
+    fn downcast_ref(&self) -> Result<&T, TypeMismatch> {
         if self.is_type() {
             Ok(unsafe { self.downcast_ref_unchecked() })
         } else {
-            let mismatch = TypeMismatch::new::<T, Self>(self);
-            Err(DowncastError::new(mismatch, self))
+            Err(TypeMismatch::new::<T, Self>(self))
         }
     }
 
@@ -134,12 +133,11 @@ pub trait Downcast<T>: Any
         &mut *(to_trait_object(self).data as *mut T)
     }
 
-    fn downcast_mut(&mut self) -> Result<&mut T, DowncastError<&mut Self>> {
+    fn downcast_mut(&mut self) -> Result<&mut T, TypeMismatch> {
         if self.is_type() {
             Ok(unsafe { self.downcast_mut_unchecked() })
         } else {
-            let mismatch = TypeMismatch::new::<T, Self>(self);
-            Err(DowncastError::new(mismatch, self))
+            Err(TypeMismatch::new::<T, Self>(self))
         }
     }
 
@@ -199,7 +197,7 @@ macro_rules! impl_downcast {
         {}
     };
     ($base:ty) => {
-        impl<_T: $crate::Any> $crate::Downcast<_T> for $base 
+        impl<_T: $crate::Any> $crate::Downcast<_T> for $base
             where _T: $crate::Any
         {}
     };
@@ -224,7 +222,7 @@ macro_rules! downcast_methods_core {
         }
 
         #[allow(unused)]
-        pub fn downcast_ref<_T>(&self) -> Result<&_T, $crate::DowncastError<&Self>>
+        pub fn downcast_ref<_T>(&self) -> Result<&_T, $crate::TypeMismatch>
             where _T: $crate::Any, Self: $crate::Downcast<_T>
         {
             $crate::Downcast::<_T>::downcast_ref(self)
@@ -238,7 +236,7 @@ macro_rules! downcast_methods_core {
         }
 
         #[allow(unused)]
-        pub fn downcast_mut<_T>(&mut self) -> Result<&mut _T, $crate::DowncastError<&mut Self>>
+        pub fn downcast_mut<_T>(&mut self) -> Result<&mut _T, $crate::TypeMismatch>
             where _T: $crate::Any, Self: $crate::Downcast<_T>
         {
             $crate::Downcast::<_T>::downcast_mut(self)
@@ -272,7 +270,7 @@ macro_rules! downcast_methods_std {
         }
 
         #[allow(unused)]
-        pub fn downcast<_T>(self: Box<Self>) ->  Result<Box<_T>, $crate::DowncastError<Box<Self>>>
+        pub fn downcast<_T>(self: Box<Self>) -> Result<Box<_T>, $crate::DowncastError<Box<Self>>>
             where _T: $crate::Any, Self: $crate::Downcast<_T>
         {
             $crate::Downcast::<_T>::downcast(self)
@@ -313,7 +311,7 @@ macro_rules! downcast_methods_std {
 ///         where T: Any, Self: Downcast<T>
 ///     { ... }
 ///
-///     pub fn downcast_ref<T>(&self) -> Result<&T, DowncastError<&T>>
+///     pub fn downcast_ref<T>(&self) -> Result<&T, TypeMismatch>
 ///         where T: Any, Self: Downcast<T>
 ///     { ... }
 ///
@@ -321,8 +319,7 @@ macro_rules! downcast_methods_std {
 ///         where T: Any, Self: Downcast<T>
 ///     { ... }
 ///
-/// pub fn downcast_mut<T>(&mut self) -> Result<&mut T, DowncastError<&mut
-/// T>>
+///     pub fn downcast_mut<T>(&mut self) -> Result<&mut T, TypeMismatch>
 ///         where T: Any, Self: Downcast<T>
 ///     { ... }
 ///
@@ -358,7 +355,7 @@ macro_rules! downcast_methods {
 ///         where T: Any, Self: Downcast<T>
 ///     { ... }
 ///
-///     pub fn downcast_ref<T>(&self) -> Result<&T, DowncastError<&T>>
+///     pub fn downcast_ref<T>(&self) -> Result<&T, TypeMismatch>
 ///         where T: Any, Self: Downcast<T>
 ///     { ... }
 ///
@@ -366,8 +363,7 @@ macro_rules! downcast_methods {
 ///         where T: Any, Self: Downcast<T>
 ///     { ... }
 ///
-/// pub fn downcast_mut<T>(&mut self) -> Result<&mut T, DowncastError<&mut
-/// T>>
+///     pub fn downcast_mut<T>(&mut self) -> Result<&mut T, TypeMismatch>
 ///         where T: Any, Self: Downcast<T>
 ///     { ... }
 ///
