@@ -193,7 +193,7 @@ pub mod _std {
 macro_rules! impl_downcast {
     (<$($params:ident),+ $(,)*> $base:ty $(where $($bounds:tt)+)*) => {
         impl<_T: $crate::Any, $($params),+> $crate::Downcast<_T> for $base
-            where _T: $crate::Any, $($($bounds)+)*
+            where _T: $crate::Any, $($params: 'static,)* $($($bounds)+)*
         {}
     };
     ($base:ty) => {
@@ -244,7 +244,7 @@ macro_rules! downcast_methods_core {
     };
     (<$($params:ident),+ $(,)*> $base:ty $(where $($bounds:tt)+)*) => {
         impl<$($params),+> $base
-            $(where $($bounds)+)*
+            where $($params: 'static,)* $($($bounds)+)*
         {
             downcast_methods_core!(@items);
         }
