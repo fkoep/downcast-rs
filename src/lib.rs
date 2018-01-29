@@ -222,7 +222,7 @@ macro_rules! downcast_methods_core {
         }
 
         #[allow(unused)]
-        pub fn downcast_ref<_T>(&self) -> Result<&_T, $crate::TypeMismatch>
+        pub fn downcast_ref<_T>(&self) -> $crate::_std::result::Result<&_T, $crate::TypeMismatch>
             where _T: $crate::Any, Self: $crate::Downcast<_T>
         {
             $crate::Downcast::<_T>::downcast_ref(self)
@@ -236,7 +236,7 @@ macro_rules! downcast_methods_core {
         }
 
         #[allow(unused)]
-        pub fn downcast_mut<_T>(&mut self) -> Result<&mut _T, $crate::TypeMismatch>
+        pub fn downcast_mut<_T>(&mut self) -> $crate::_std::result::Result<&mut _T, $crate::TypeMismatch>
             where _T: $crate::Any, Self: $crate::Downcast<_T>
         {
             $crate::Downcast::<_T>::downcast_mut(self)
@@ -263,14 +263,14 @@ macro_rules! downcast_methods_std {
         downcast_methods_core!(@items);
 
         #[allow(unused)]
-        pub unsafe fn downcast_unchecked<_T>(self: Box<Self>) -> Box<_T>
+        pub unsafe fn downcast_unchecked<_T>(self: $crate::_std::boxed::Box<Self>) -> $crate::_std::boxed::Box<_T>
             where _T: $crate::Any, Self: $crate::Downcast<_T>
         {
             $crate::Downcast::<_T>::downcast_unchecked(self)
         }
 
         #[allow(unused)]
-        pub fn downcast<_T>(self: Box<Self>) -> Result<Box<_T>, $crate::DowncastError<Box<Self>>>
+        pub fn downcast<_T>(self: $crate::_std::boxed::Box<Self>) -> $crate::_std::result::Result<$crate::_std::boxed::Box<_T>, $crate::DowncastError<Box<Self>>>
             where _T: $crate::Any, Self: $crate::Downcast<_T>
         {
             $crate::Downcast::<_T>::downcast(self)
