@@ -30,7 +30,3 @@ extern crate downcast;
 * **std (default)** enables all functionality requiring the standard library (`Downcast::downcast()`).
 * **nightly** enables all functionality requiring rust nightly (`Any::type_name()`).
 
-## contribution guidelines
-
-Make sure to `cargo install rustfmt` and `cargo fmt` the codebase before creating any commits!
-
