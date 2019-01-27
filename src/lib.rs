@@ -24,9 +24,7 @@ fn type_name<T: StdAny + ?Sized>() -> &'static str { unsafe { intrinsics::type_n
 #[cfg(not(feature = "nightly"))]
 fn type_name<T: StdAny + ?Sized>() -> &'static str { "[ONLY ON NIGHTLY]" }
 
-/// FIXME(https://github.com/rust-lang/rust/issues/27745) remove this
 pub trait Any: StdAny {
-    fn type_id(&self) -> TypeId { TypeId::of::<Self>() }
     #[doc(hidden)]
     fn type_name(&self) -> &'static str { type_name::<Self>() }
 }
