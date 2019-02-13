@@ -24,9 +24,11 @@ fn type_name<T: StdAny + ?Sized>() -> &'static str { unsafe { intrinsics::type_n
 #[cfg(not(feature = "nightly"))]
 fn type_name<T: StdAny + ?Sized>() -> &'static str { "[ONLY ON NIGHTLY]" }
 
-/// FIXME(https://github.com/rust-lang/rust/issues/27745) remove this
 pub trait Any: StdAny {
-    fn type_id(&self) -> TypeId { TypeId::of::<Self>() }
+    /// TODO: once 1.33.0 is the minimum supported compiler version, remove
+    /// Any::type_id_compat and use StdAny::type_id instead.
+    /// https://github.com/rust-lang/rust/issues/27745
+    fn type_id_compat(&self) -> TypeId { TypeId::of::<Self>() }
     #[doc(hidden)]
     fn type_name(&self) -> &'static str { type_name::<Self>() }
 }
@@ -117,7 +119,7 @@ fn to_trait_object<T: ?Sized>(obj: &T) -> TraitObject {
 pub trait Downcast<T>: Any
     where T: Any
 {
-    fn is_type(&self) -> bool { self.type_id() == TypeId::of::<T>() }
+    fn is_type(&self) -> bool { self.type_id_compat() == TypeId::of::<T>() }
 
     unsafe fn downcast_ref_unchecked(&self) -> &T { &*(to_trait_object(self).data as *mut T) }
 
