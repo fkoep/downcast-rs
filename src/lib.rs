@@ -117,7 +117,7 @@ fn to_trait_object<T: ?Sized>(obj: &T) -> TraitObject {
 pub trait Downcast<T>: Any
     where T: Any
 {
-    fn is_type(&self) -> bool { self.type_id() == TypeId::of::<T>() }
+    fn is_type(&self) -> bool { self::Any::type_id(self) == TypeId::of::<T>() }
 
     unsafe fn downcast_ref_unchecked(&self) -> &T { &*(to_trait_object(self).data as *mut T) }
 
