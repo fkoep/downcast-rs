@@ -209,35 +209,35 @@ macro_rules! impl_downcast {
 #[macro_export]
 macro_rules! downcast_methods_core {
     (@items) => {
-        #[allow(unused)]
+        #[allow(unused, missing_docs)]
         pub fn is<_T>(&self) -> bool
             where _T: $crate::Any, Self: $crate::Downcast<_T>
         {
             $crate::Downcast::<_T>::is_type(self)
         }
 
-        #[allow(unused)]
+        #[allow(unused, missing_docs)]
         pub unsafe fn downcast_ref_unchecked<_T>(&self) -> &_T
             where _T: $crate::Any, Self: $crate::Downcast<_T>
         {
             $crate::Downcast::<_T>::downcast_ref_unchecked(self)
         }
 
-        #[allow(unused)]
+        #[allow(unused, missing_docs)]
         pub fn downcast_ref<_T>(&self) -> $crate::_std::result::Result<&_T, $crate::TypeMismatch>
             where _T: $crate::Any, Self: $crate::Downcast<_T>
         {
             $crate::Downcast::<_T>::downcast_ref(self)
         }
 
-        #[allow(unused)]
+        #[allow(unused, missing_docs)]
         pub unsafe fn downcast_mut_unchecked<_T>(&mut self) -> &mut _T
             where _T: $crate::Any, Self: $crate::Downcast<_T>
         {
             $crate::Downcast::<_T>::downcast_mut_unchecked(self)
         }
 
-        #[allow(unused)]
+        #[allow(unused, missing_docs)]
         pub fn downcast_mut<_T>(&mut self) -> $crate::_std::result::Result<&mut _T, $crate::TypeMismatch>
             where _T: $crate::Any, Self: $crate::Downcast<_T>
         {
@@ -264,14 +264,14 @@ macro_rules! downcast_methods_std {
     (@items) => {
         downcast_methods_core!(@items);
 
-        #[allow(unused)]
+        #[allow(unused, missing_docs)]
         pub unsafe fn downcast_unchecked<_T>(self: $crate::_std::boxed::Box<Self>) -> $crate::_std::boxed::Box<_T>
             where _T: $crate::Any, Self: $crate::Downcast<_T>
         {
             $crate::Downcast::<_T>::downcast_unchecked(self)
         }
 
-        #[allow(unused)]
+        #[allow(unused, missing_docs)]
         pub fn downcast<_T>(self: $crate::_std::boxed::Box<Self>) -> $crate::_std::result::Result<$crate::_std::boxed::Box<_T>, $crate::DowncastError<Box<Self>>>
             where _T: $crate::Any, Self: $crate::Downcast<_T>
         {
