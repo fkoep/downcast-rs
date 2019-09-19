@@ -104,6 +104,7 @@ impl<O> Error for DowncastError<O> {
 
 // ++++++++++++++++++++ Downcast ++++++++++++++++++++
 
+#[repr(C)]
 #[derive(Clone, Copy)]
 struct TraitObject {
     pub data: *mut (),
