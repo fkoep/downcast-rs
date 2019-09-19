@@ -403,8 +403,8 @@ macro_rules! downcast {
 mod any_impls {
     use super::Any;
 
-    impl_downcast!(Any);
-    impl_downcast!((Any + Send));
-    impl_downcast!((Any + Sync));
-    impl_downcast!((Any + Send + Sync));
+    impl_downcast!(dyn Any);
+    impl_downcast!((dyn Any + Send));
+    impl_downcast!((dyn Any + Sync));
+    impl_downcast!((dyn Any + Send + Sync));
 }
