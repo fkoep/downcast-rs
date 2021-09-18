@@ -1,8 +1,12 @@
-# downcast &emsp; [![Latest Version]][crates.io]
+# downcast &emsp; ![Latest Version]
 
 [Latest Version]: https://img.shields.io/crates/v/downcast.svg
 
-__NOTE__: It is recommended to use the more actively maintained (but unfortunately named) [downcast-rs](https://crates.io/crates/downcast-rs) crate. It also offers the ability to downcast `Arc<T>` objects. In constrast, this crate offers the ability to downcast trait objects to trait objects. This utilizes unsafe and possibly unsound code (see #5). 
+> __NOTE__: It is recommended to use the [downcast-rs](https://crates.io/crates/downcast-rs) crate instead.
+> It is more actively maintained and also offers the ability to downcast `Arc<T>` objects.
+> 
+> In constrast, this crate offers the ability to downcast trait objects to trait objects.
+> This utilizes unsafe and possibly unsound code (see #5). 
 
 A trait (& utilities) for downcasting trait objects back to their original types.
 
