@@ -102,6 +102,7 @@ pub trait Downcast<T>: Any
 {
     fn is_type(&self) -> bool { self.type_id() == TypeId::of::<T>() }
 
+    #[allow(clippy::missing_safety_doc)]
     unsafe fn downcast_ref_unchecked(&self) -> &T { &*(to_trait_object(self).data as *mut T) }
 
     fn downcast_ref(&self) -> Result<&T, TypeMismatch> {
@@ -112,6 +113,7 @@ pub trait Downcast<T>: Any
         }
     }
 
+    #[allow(clippy::missing_safety_doc)]
     unsafe fn downcast_mut_unchecked(&mut self) -> &mut T {
         &mut *(to_trait_object(self).data as *mut T)
     }
@@ -125,6 +127,7 @@ pub trait Downcast<T>: Any
     }
 
     #[cfg(feature = "std")]
+    #[allow(clippy::missing_safety_doc)]
     unsafe fn downcast_unchecked(self: Box<Self>) -> Box<T> {
         let ret: Box<T> = Box::from_raw(to_trait_object(&*self).data as *mut T);
         mem::forget(self);
@@ -198,6 +201,7 @@ macro_rules! downcast_methods_core {
         }
 
         #[allow(unused, missing_docs)]
+        #[allow(clippy::missing_safety_doc)]
         unsafe fn downcast_ref_unchecked<_T>(&self) -> &_T
             where _T: $crate::Any, Self: $crate::Downcast<_T>
         {
@@ -212,6 +216,7 @@ macro_rules! downcast_methods_core {
         }
 
         #[allow(unused, missing_docs)]
+        #[allow(clippy::missing_safety_doc)]
         unsafe fn downcast_mut_unchecked<_T>(&mut self) -> &mut _T
             where _T: $crate::Any, Self: $crate::Downcast<_T>
         {
@@ -246,6 +251,7 @@ macro_rules! downcast_methods_std {
         downcast_methods_core!(@items);
 
         #[allow(unused, missing_docs)]
+        #[allow(clippy::missing_safety_doc)]
         unsafe fn downcast_unchecked<_T>(self: $crate::_std::boxed::Box<Self>) -> $crate::_std::boxed::Box<_T>
             where _T: $crate::Any, Self: $crate::Downcast<_T>
         {
