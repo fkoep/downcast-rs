@@ -6,18 +6,38 @@ mod std {
 }
 
 use std::any::{Any as StdAny, TypeId, type_name};
+use std::fmt::{self, Debug, Display};
+
 #[cfg(feature = "std")]
 use std::error::Error;
-use std::fmt::{self, Debug, Display};
-use std::mem;
 
 // ++++++++++++++++++++ Any ++++++++++++++++++++
 
 pub trait Any: StdAny {
-    fn type_name(&self) -> &'static str { type_name::<Self>() }
+    #[doc(hidden)]
+    fn as_any(&self) -> &dyn StdAny;
+    
+    #[doc(hidden)]
+    fn as_any_mut(&mut self) -> &mut dyn StdAny;
+    
+    #[doc(hidden)]
+    #[cfg(feature = "std")]
+    fn into_any(self: Box<Self>) -> Box<dyn StdAny>;
+    
+    #[doc(hidden)]
+    fn type_name(&self) -> &'static str;
 }
 
-impl<T> Any for T where T: StdAny + ?Sized {}
+impl<T> Any for T where T: StdAny {
+    fn as_any(&self) -> &dyn StdAny { self }
+    
+    fn as_any_mut(&mut self) -> &mut dyn StdAny { self }
+    
+    #[cfg(feature = "std")]
+    fn into_any(self: Box<Self>) -> Box<dyn StdAny> { self }
+    
+    fn type_name(&self) -> &'static str { type_name::<Self>() }
+}
 
 // ++++++++++++++++++++ TypeMismatch ++++++++++++++++++++
 
@@ -56,10 +76,7 @@ pub struct DowncastError<O> {
 
 impl<O> DowncastError<O> {
     pub fn new(mismatch: TypeMismatch, object: O) -> Self {
-        Self {
-            mismatch: mismatch,
-            object: object,
-        }
+        Self{ mismatch, object }
     }
     pub fn type_mismatch(&self) -> TypeMismatch { self.mismatch }
     pub fn into_object(self) -> O { self.object }
@@ -84,60 +101,31 @@ impl<O> Error for DowncastError<O> {}
 
 // ++++++++++++++++++++ Downcast ++++++++++++++++++++
 
-#[repr(C)]
-#[derive(Clone, Copy)]
-struct TraitObject {
-    pub data: *mut (),
-    pub vtable: *mut (),
-}
-
-#[inline]
-fn to_trait_object<T: ?Sized>(obj: &T) -> TraitObject {
-    assert_eq!(mem::size_of::<&T>(), mem::size_of::<TraitObject>());
-    unsafe { *((&obj) as *const &T as *const TraitObject) }
-}
-
 pub trait Downcast<T>: Any
     where T: Any
 {
     fn is_type(&self) -> bool { self.type_id() == TypeId::of::<T>() }
 
-    #[allow(clippy::missing_safety_doc)]
-    unsafe fn downcast_ref_unchecked(&self) -> &T { &*(to_trait_object(self).data as *mut T) }
-
     fn downcast_ref(&self) -> Result<&T, TypeMismatch> {
         if self.is_type() {
-            Ok(unsafe { self.downcast_ref_unchecked() })
+            Ok(self.as_any().downcast_ref().unwrap())
         } else {
             Err(TypeMismatch::new::<T, Self>(self))
         }
-    }
-
-    #[allow(clippy::missing_safety_doc)]
-    unsafe fn downcast_mut_unchecked(&mut self) -> &mut T {
-        &mut *(to_trait_object(self).data as *mut T)
     }
 
     fn downcast_mut(&mut self) -> Result<&mut T, TypeMismatch> {
         if self.is_type() {
-            Ok(unsafe { self.downcast_mut_unchecked() })
+            Ok(self.as_any_mut().downcast_mut().unwrap())
         } else {
             Err(TypeMismatch::new::<T, Self>(self))
         }
-    }
-
-    #[cfg(feature = "std")]
-    #[allow(clippy::missing_safety_doc)]
-    unsafe fn downcast_unchecked(self: Box<Self>) -> Box<T> {
-        let ret: Box<T> = Box::from_raw(to_trait_object(&*self).data as *mut T);
-        mem::forget(self);
-        ret
     }
 
     #[cfg(feature = "std")]
     fn downcast(self: Box<Self>) -> Result<Box<T>, DowncastError<Box<Self>>> {
         if self.is_type() {
-            Ok(unsafe { self.downcast_unchecked() })
+            Ok(self.into_any().downcast().unwrap())
         } else {
             let mismatch = TypeMismatch::new::<T, Self>(&*self);
             Err(DowncastError::new(mismatch, self))
@@ -149,7 +137,10 @@ pub trait Downcast<T>: Any
 
 #[doc(hidden)]
 pub mod _std {
+    #[cfg(feature = "std")]
     pub use std::*;
+    #[cfg(not(feature = "std"))]
+    pub use core::*;
 }
 
 /// Implements [`Downcast`](trait.Downcast.html) for your trait-object-type.
@@ -178,12 +169,12 @@ pub mod _std {
 #[macro_export]
 macro_rules! impl_downcast {
     (<$($params:ident),+ $(,)*> $base:ty $(where $($bounds:tt)+)*) => {
-        impl<_T: $crate::Any, $($params),+> $crate::Downcast<_T> for $base
+        impl<_T, $($params),+> $crate::Downcast<_T> for $base
             where _T: $crate::Any, $($params: 'static,)* $($($bounds)+)*
         {}
     };
     ($base:ty) => {
-        impl<_T: $crate::Any> $crate::Downcast<_T> for $base
+        impl<_T> $crate::Downcast<_T> for $base
             where _T: $crate::Any
         {}
     };
@@ -201,26 +192,10 @@ macro_rules! downcast_methods_core {
         }
 
         #[allow(unused, missing_docs)]
-        #[allow(clippy::missing_safety_doc)]
-        unsafe fn downcast_ref_unchecked<_T>(&self) -> &_T
-            where _T: $crate::Any, Self: $crate::Downcast<_T>
-        {
-            $crate::Downcast::<_T>::downcast_ref_unchecked(self)
-        }
-
-        #[allow(unused, missing_docs)]
         fn downcast_ref<_T>(&self) -> $crate::_std::result::Result<&_T, $crate::TypeMismatch>
             where _T: $crate::Any, Self: $crate::Downcast<_T>
         {
             $crate::Downcast::<_T>::downcast_ref(self)
-        }
-
-        #[allow(unused, missing_docs)]
-        #[allow(clippy::missing_safety_doc)]
-        unsafe fn downcast_mut_unchecked<_T>(&mut self) -> &mut _T
-            where _T: $crate::Any, Self: $crate::Downcast<_T>
-        {
-            $crate::Downcast::<_T>::downcast_mut_unchecked(self)
         }
 
         #[allow(unused, missing_docs)]
@@ -249,14 +224,6 @@ macro_rules! downcast_methods_core {
 macro_rules! downcast_methods_std {
     (@items) => {
         downcast_methods_core!(@items);
-
-        #[allow(unused, missing_docs)]
-        #[allow(clippy::missing_safety_doc)]
-        unsafe fn downcast_unchecked<_T>(self: $crate::_std::boxed::Box<Self>) -> $crate::_std::boxed::Box<_T>
-            where _T: $crate::Any, Self: $crate::Downcast<_T>
-        {
-            $crate::Downcast::<_T>::downcast_unchecked(self)
-        }
 
         #[allow(unused, missing_docs)]
         fn downcast<_T>(self: $crate::_std::boxed::Box<Self>) -> $crate::_std::result::Result<$crate::_std::boxed::Box<_T>, $crate::DowncastError<Box<Self>>>
