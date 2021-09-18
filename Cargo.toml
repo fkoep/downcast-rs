@@ -1,6 +1,6 @@
 [package]
 name = "downcast"
-version = "0.10.0"
+version = "0.11.0"
 authors = ["Felix Köpge <fkoep@mailbox.org>"]
 license = "MIT"
 edition = "2018"
