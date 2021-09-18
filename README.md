@@ -1,6 +1,8 @@
-# downcast
+# downcast &emsp; [![Latest Version]][crates.io]
 
-[![](http://meritbadge.herokuapp.com/downcast)](https://crates.io/crates/downcast)
+[Latest Version]: https://img.shields.io/crates/v/downcast.svg
+
+__NOTE__: It is recommended to use the more actively maintained (but unfortunately named) [downcast-rs](https://crates.io/crates/downcast-rs) crate. It also offers the ability to downcast `Arc<T>` objects. In constrast, this crate offers the ability to downcast trait objects to trait objects. This utilizes unsafe and possibly unsound code (see #5). 
 
 A trait (& utilities) for downcasting trait objects back to their original types.
 
@@ -12,7 +14,7 @@ Add to your Cargo.toml:
 
 ```toml
 [dependencies]
-downcast = "0.8"
+downcast = "0.11"
 ```
 
 Add to your crate root:
@@ -29,4 +31,3 @@ extern crate downcast;
 
 * **std (default)** enables all functionality requiring the standard library (`Downcast::downcast()`).
 * **nightly** enables all functionality requiring rust nightly (`Any::type_name()`).
-
