@@ -3,10 +3,9 @@
 [Latest Version]: https://img.shields.io/crates/v/downcast.svg
 
 > __NOTE__: It is recommended to use the [downcast-rs](https://crates.io/crates/downcast-rs) crate instead.
-> It is more actively maintained and also offers the ability to downcast `Arc<T>` objects.
+> It is more actively maintained and offers more features.
 > 
-> In constrast, this crate offers the ability to downcast trait objects to trait objects.
-> This utilizes unsafe and possibly unsound code (see #5). 
+> This crate is considered feature-complete and frozen at the current state.
 
 A trait (& utilities) for downcasting trait objects back to their original types.
 
@@ -18,7 +17,7 @@ Add to your Cargo.toml:
 
 ```toml
 [dependencies]
-downcast = "0.11"
+downcast = "1.0"
 ```
 
 Add to your crate root:
