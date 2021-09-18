@@ -7,7 +7,7 @@ use downcast::Any;
 
 trait Animal: Any {}
 
-downcast!(Animal);
+downcast!(dyn Animal);
 
 /* Impl */
 
@@ -24,7 +24,7 @@ impl Bird {
 /* Main */
 
 fn main() {
-    let animal: Box<Animal> = Box::new(Bird);
+    let animal: Box<dyn Animal> = Box::new(Bird);
     {
         let bird = animal.downcast_ref::<Bird>().unwrap();
         bird.wash_beak();

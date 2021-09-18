@@ -8,7 +8,7 @@ use std::fmt::Debug;
 
 trait Animal<X>: Any where X: Debug {}
 
-downcast!(<X> Animal<X> where X: Debug);
+downcast!(<X> dyn Animal<X> where X: Debug);
 
 /* Impl */
 
@@ -25,7 +25,7 @@ impl Bird {
 /* Main */
 
 fn main() {
-    let animal: Box<Animal<usize>> = Box::new(Bird);
+    let animal: Box<dyn Animal<usize>> = Box::new(Bird);
     {
         let bird = animal.downcast_ref::<Bird>().unwrap();
         bird.wash_beak();
