@@ -3,10 +3,10 @@ extern crate downcast;
 use downcast::Any;
 
 trait Simple: Any {}
-downcast!(Simple);
+downcast!(dyn Simple);
 
 trait WithParams<T, U>: Any {}
-downcast!(<T, U> WithParams<T, U>);
+downcast!(<T, U> dyn WithParams<T, U>);
 struct Param1;
 struct Param2;
 
@@ -22,7 +22,7 @@ impl WithParams<Param1, Param2> for ImplB {}
 
 #[test]
 fn simple(){
-    let mut a: Box<Simple> = Box::new(ImplA{ data: "data".into() });
+    let mut a: Box<dyn Simple> = Box::new(ImplA{ data: "data".into() });
 
     assert_eq!(a.downcast_ref::<ImplA>().unwrap().data, "data");
     assert!(a.downcast_ref::<ImplB>().is_err());
@@ -35,7 +35,7 @@ fn simple(){
 
 #[test]
 fn with_params(){
-    let mut a: Box<WithParams<Param1, Param2>> = Box::new(ImplA{ data: "data".into() });
+    let mut a: Box<dyn WithParams<Param1, Param2>> = Box::new(ImplA{ data: "data".into() });
 
     assert_eq!(a.downcast_ref::<ImplA>().unwrap().data, "data");
     assert!(a.downcast_ref::<ImplB>().is_err());

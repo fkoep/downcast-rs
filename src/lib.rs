@@ -1,35 +1,19 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-#![cfg_attr(feature = "nightly", feature(core_intrinsics, try_from))]
 
 #[cfg(not(feature = "std"))]
 mod std {
     pub use core::*;
 }
 
-use std::any::Any as StdAny;
-use std::any::TypeId;
-#[cfg(feature = "nightly")]
-use std::convert::TryFrom;
+use std::any::{Any as StdAny, TypeId, type_name};
 #[cfg(feature = "std")]
 use std::error::Error;
-#[cfg(feature = "nightly")]
-use std::intrinsics;
 use std::fmt::{self, Debug, Display};
 use std::mem;
 
 // ++++++++++++++++++++ Any ++++++++++++++++++++
 
-#[cfg(feature = "nightly")]
-fn type_name<T: StdAny + ?Sized>() -> &'static str { unsafe { intrinsics::type_name::<T>() } }
-#[cfg(not(feature = "nightly"))]
-fn type_name<T: StdAny + ?Sized>() -> &'static str { "[ONLY ON NIGHTLY]" }
-
 pub trait Any: StdAny {
-    /// TODO: once 1.33.0 is the minimum supported compiler version, remove
-    /// Any::type_id_compat and use StdAny::type_id instead.
-    /// https://github.com/rust-lang/rust/issues/27745
-    fn type_id_compat(&self) -> TypeId { TypeId::of::<Self>() }
-    #[doc(hidden)]
     fn type_name(&self) -> &'static str { type_name::<Self>() }
 }
 
@@ -61,9 +45,7 @@ impl Display for TypeMismatch {
 }
 
 #[cfg(feature = "std")]
-impl Error for TypeMismatch {
-    fn description(&self) -> &str { "Type mismatch" }
-}
+impl Error for TypeMismatch {}
 
 // ++++++++++++++++++++ DowncastError ++++++++++++++++++++
 
@@ -98,9 +80,7 @@ impl<O> Display for DowncastError<O> {
 }
 
 #[cfg(feature = "std")]
-impl<O> Error for DowncastError<O> {
-    fn description(&self) -> &str { self.mismatch.description() }
-}
+impl<O> Error for DowncastError<O> {}
 
 // ++++++++++++++++++++ Downcast ++++++++++++++++++++
 
@@ -120,7 +100,7 @@ fn to_trait_object<T: ?Sized>(obj: &T) -> TraitObject {
 pub trait Downcast<T>: Any
     where T: Any
 {
-    fn is_type(&self) -> bool { self.type_id_compat() == TypeId::of::<T>() }
+    fn is_type(&self) -> bool { self.type_id() == TypeId::of::<T>() }
 
     unsafe fn downcast_ref_unchecked(&self) -> &T { &*(to_trait_object(self).data as *mut T) }
 
@@ -211,35 +191,35 @@ macro_rules! impl_downcast {
 macro_rules! downcast_methods_core {
     (@items) => {
         #[allow(unused, missing_docs)]
-        pub fn is<_T>(&self) -> bool
+        fn is<_T>(&self) -> bool
             where _T: $crate::Any, Self: $crate::Downcast<_T>
         {
             $crate::Downcast::<_T>::is_type(self)
         }
 
         #[allow(unused, missing_docs)]
-        pub unsafe fn downcast_ref_unchecked<_T>(&self) -> &_T
+        unsafe fn downcast_ref_unchecked<_T>(&self) -> &_T
             where _T: $crate::Any, Self: $crate::Downcast<_T>
         {
             $crate::Downcast::<_T>::downcast_ref_unchecked(self)
         }
 
         #[allow(unused, missing_docs)]
-        pub fn downcast_ref<_T>(&self) -> $crate::_std::result::Result<&_T, $crate::TypeMismatch>
+        fn downcast_ref<_T>(&self) -> $crate::_std::result::Result<&_T, $crate::TypeMismatch>
             where _T: $crate::Any, Self: $crate::Downcast<_T>
         {
             $crate::Downcast::<_T>::downcast_ref(self)
         }
 
         #[allow(unused, missing_docs)]
-        pub unsafe fn downcast_mut_unchecked<_T>(&mut self) -> &mut _T
+        unsafe fn downcast_mut_unchecked<_T>(&mut self) -> &mut _T
             where _T: $crate::Any, Self: $crate::Downcast<_T>
         {
             $crate::Downcast::<_T>::downcast_mut_unchecked(self)
         }
 
         #[allow(unused, missing_docs)]
-        pub fn downcast_mut<_T>(&mut self) -> $crate::_std::result::Result<&mut _T, $crate::TypeMismatch>
+        fn downcast_mut<_T>(&mut self) -> $crate::_std::result::Result<&mut _T, $crate::TypeMismatch>
             where _T: $crate::Any, Self: $crate::Downcast<_T>
         {
             $crate::Downcast::<_T>::downcast_mut(self)
@@ -266,14 +246,14 @@ macro_rules! downcast_methods_std {
         downcast_methods_core!(@items);
 
         #[allow(unused, missing_docs)]
-        pub unsafe fn downcast_unchecked<_T>(self: $crate::_std::boxed::Box<Self>) -> $crate::_std::boxed::Box<_T>
+        unsafe fn downcast_unchecked<_T>(self: $crate::_std::boxed::Box<Self>) -> $crate::_std::boxed::Box<_T>
             where _T: $crate::Any, Self: $crate::Downcast<_T>
         {
             $crate::Downcast::<_T>::downcast_unchecked(self)
         }
 
         #[allow(unused, missing_docs)]
-        pub fn downcast<_T>(self: $crate::_std::boxed::Box<Self>) -> $crate::_std::result::Result<$crate::_std::boxed::Box<_T>, $crate::DowncastError<Box<Self>>>
+        fn downcast<_T>(self: $crate::_std::boxed::Box<Self>) -> $crate::_std::result::Result<$crate::_std::boxed::Box<_T>, $crate::DowncastError<Box<Self>>>
             where _T: $crate::Any, Self: $crate::Downcast<_T>
         {
             $crate::Downcast::<_T>::downcast(self)
@@ -302,9 +282,9 @@ macro_rules! downcast_methods_std {
 /// ```
 ///
 /// ```ignore
-/// /* 1st */ impl Foo {
-/// /* 2nd */ impl<B> Foo<B> where B: Bar {
-/// /* 3nd */ impl<B> Foo<Bar = B> {
+/// /* 1st */ impl dyn Foo {
+/// /* 2nd */ impl<B> dyn Foo<B> where B: Bar {
+/// /* 3nd */ impl<B> dyn Foo<Bar = B> {
 ///
 ///     pub fn is<T>(&self) -> bool
 ///         where T: Any, Self: Downcast<T>
@@ -346,9 +326,9 @@ macro_rules! downcast_methods {
 /// ```
 ///
 /// ```ignore
-/// /* 1st */ impl Foo {
-/// /* 2nd */ impl<B> Foo<B> where B: Bar {
-/// /* 3nd */ impl<B> Foo<Bar = B> {
+/// /* 1st */ impl dyn Foo {
+/// /* 2nd */ impl<B> dyn Foo<B> where B: Bar {
+/// /* 3nd */ impl<B> dyn Foo<Bar = B> {
 ///
 ///     pub fn is<T>(&self) -> bool
 ///         where T: Any, Self: Downcast<T>
@@ -374,8 +354,7 @@ macro_rules! downcast_methods {
 ///         where T: Any, Self: Downcast<T>
 ///     { ... }
 ///
-/// pub fn downcast<T>(self: Box<Self>) -> Result<Box<T>,
-/// DowncastError<Box<T>>>
+///     pub fn downcast<T>(self: Box<Self>) -> Result<Box<T>, DowncastError<Box<T>>>
 ///         where T: Any, Self: Downcast<T>
 ///     { ... }
 /// }
