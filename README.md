@@ -12,7 +12,7 @@ Add to your Cargo.toml:
 
 ```toml
 [dependencies]
-downcast = "0.12"
+downcast = "0.11"
 ```
 
 Add to your crate root:
