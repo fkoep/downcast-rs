@@ -33,9 +33,9 @@ extern crate downcast;
 
 ## faq
 
-__Q: I'm getting `the size for values of type XXX cannot be known at compile time` errors, what am i doing wrong?__
+~__Q: I'm getting `the size for values of type XXX cannot be known at compile time` errors, what am i doing wrong?__~
 
-A: Make sure you use the corresponding `Any` bound along with the `Downcast` traits. So, `Any` for `Downcast` and `AnySync` for `DowncastSync`.
+~A: Make sure you use the corresponding `Any` bound along with the `Downcast` traits. So, `Any` for `Downcast` and `AnySync` for `DowncastSync`.~
 
 __Q: Can i cast trait objects to trait objects?__
 
